@@ -1,0 +1,37 @@
+# app/models.py
+from typing import List, Optional
+from pydantic import BaseModel, Field
+from datetime import datetime
+
+class User(BaseModel):
+    id: Optional[str] = None
+    email: str
+    password: str   # store hashed, not plain text
+    name: Optional[str] = None
+
+class Medication(BaseModel):
+    id: Optional[str] = None
+    name: str
+    dose: Optional[str] = None
+    timing: Optional[List[str]] = Field(default_factory=list)  # e.g. ["morning","evening"]
+    duration: Optional[str] = None  # e.g. "7 days"
+
+class Appointment(BaseModel):
+    id: Optional[str] = None
+    type: str
+    status: str = "pending"      # pending / confirmed / declined
+
+class CarePlanCreate(BaseModel):
+    patient_id: str
+    medications: List[Medication] = Field(default_factory=list)
+    appointments: List[Appointment] = Field(default_factory=list)
+
+class CarePlanInDB(CarePlanCreate):
+    id: Optional[str] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class DoctorAvailability(BaseModel):
+    doctor_id: str
+    doctor_name: str
+    specialty: Optional[str] = None
+    available_slots: List[datetime]  # e.g. ["2025-09-17T10:30:00", "2025-09-18T14:00:00"]
