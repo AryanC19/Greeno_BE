@@ -1,0 +1,17 @@
+# Visual Studio temporary files
+.vs/
+
+# Python-specific files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Dependencies and environment
+venv/
+env/
+
+# Editor/OS-specific files
+.idea/
+.vscode/
+Thumbs.db
