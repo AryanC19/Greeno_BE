@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException
-from app.service.crud_careplan import update_appointment_status
 from app.utils.ai_agent import assign_slot_to_appointment
 from ..models import DoctorAvailability
 from ..service.crud_doctor_availabilty import create_doctor_availability, get_doctor_availability_by_id

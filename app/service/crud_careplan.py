@@ -57,16 +57,3 @@ async def get_medication_by_patient(patient_id: str) -> dict:
     return doc
 
 
-async def get_pending_appointments(patient_id: str) -> list:
-    doc = await get_medication_by_patient(patient_id)
-    if not doc:
-        return []
-    return [a for a in doc.get("appointments", []) if a.get("status") == "pending"]
-
-async def update_appointment_status(patient_id: str, appointment_id: str, status: str, proposed_slot: str = None) -> dict:
-    query = {"patient_id": patient_id, "appointments.id": appointment_id}
-    update_fields = {"appointments.$.status": status}
-    if proposed_slot is not None:
-        update_fields["appointments.$.proposed_slot"] = proposed_slot
-    await db[CAREPLANS_COLL].update_one(query, {"$set": update_fields})
-    return await get_medication_by_patient(patient_id)

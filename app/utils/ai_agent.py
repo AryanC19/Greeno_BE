@@ -11,7 +11,7 @@ async def assign_slot_to_appointment(patient_id: str, appointment_id: str, speci
     available_slots = doctor["available_slots"]
 
     # 2️⃣ Get current booked slots for patient
-    careplan = await db[CAREPLANS_COLL].find_one({"patient_id": patient_id})
+    careplan = await db[CAREPLANS_COLL].find_one()
     booked_slots = [
         a.get("proposed_slot") for a in careplan.get("appointments", []) if a.get("proposed_slot")
     ]
