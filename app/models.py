@@ -9,12 +9,20 @@ class User(BaseModel):
     password: str   # store hashed, not plain text
     name: Optional[str] = None
 
+
+class MedicationSchedule(BaseModel):
+    time: str                     # e.g. "morning", "evening"
+    taken: Optional[bool] = None  # None = not decided ye     
+
+
+
 class Medication(BaseModel):
     id: Optional[str] = None
     name: str
     dose: Optional[str] = None
-    timing: Optional[List[str]] = Field(default_factory=list)  # e.g. ["morning","evening"]
+    schedule: List[MedicationSchedule] = Field(default_factory=list)  
     duration: Optional[str] = None  # e.g. "7 days"
+
 
 class Appointment(BaseModel):
     id: Optional[str] = None
@@ -25,6 +33,7 @@ class CarePlanCreate(BaseModel):
     patient_id: str
     medications: List[Medication] = Field(default_factory=list)
     appointments: List[Appointment] = Field(default_factory=list)
+    medical_history: Optional[str] = None
 
 class CarePlanInDB(CarePlanCreate):
     id: Optional[str] = None

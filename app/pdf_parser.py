@@ -3,7 +3,7 @@ import pdfplumber
 import re
 import uuid
 from typing import List
-from app.models import CarePlanCreate, Medication, Appointment
+from app.models import CarePlanCreate, Medication, Appointment, MedicationSchedule
 
 _HEADING_MATCH_FLAGS = re.IGNORECASE | re.MULTILINE
 
@@ -68,9 +68,10 @@ def parse_medications_section(text: str) -> List[Medication]:
 
         name = None
         dose = None
-        timing = []
+        schedule: List[MedicationSchedule] = []   # fixed initialization
         duration = None
 
+        # Extract name
         m_name = re.search(r'(?:Medicine|Medication|Name)\s*[:\-]\s*(.+)', blk_norm, re.IGNORECASE)
         if m_name:
             name = m_name.group(1).strip().splitlines()[0]
@@ -80,15 +81,22 @@ def parse_medications_section(text: str) -> List[Medication]:
             first_line = re.split(r'\bDose\b|\bDose:\b', first_line, flags=re.IGNORECASE)[0]
             name = first_line.strip()
 
+        # Extract dose
         d = re.search(r'Dose\s*[:\-]\s*([^\n]+)', blk_norm, re.IGNORECASE)
         if d:
             dose = d.group(1).strip()
 
+        # Extract timing -> now schedule
         t = re.search(r'(?:Time|When to take|Timing|Frequency)\s*[:\-]\s*([^\n]+)', blk_norm, re.IGNORECASE)
         if t:
             timing_raw = t.group(1).strip()
-            timing = [x.strip().lower() for x in re.split(r'[;,/]+', timing_raw) if x.strip()]
+            timing_list = [x.strip().lower() for x in re.split(r'[;,/]+', timing_raw) if x.strip()]
+            schedule = [MedicationSchedule(time=tm, taken=None) for tm in timing_list]
+        else:
+            # fallback if no timing in PDF
+            schedule = [MedicationSchedule(time="unspecified", taken=None)]
 
+        # Extract duration
         dur = re.search(r'(?:Duration|For how long|Days|Weeks|Months)\s*[:\-]\s*([^\n]+)', blk_norm, re.IGNORECASE)
         if dur:
             duration = dur.group(1).strip()
@@ -97,10 +105,11 @@ def parse_medications_section(text: str) -> List[Medication]:
             id=str(uuid.uuid4()),
             name=name,
             dose=dose,
-            timing=timing,
+            schedule=schedule,  # now using MedicationSchedule
             duration=duration
         ))
     return meds
+
 
 
 def parse_appointments_section(text: str) -> List[Appointment]:

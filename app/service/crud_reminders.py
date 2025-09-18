@@ -1,5 +1,4 @@
 import uuid
-from datetime import datetime
 from ..database import db
 
 CAREPLAN_COLL = "careplans"
@@ -13,12 +12,15 @@ async def get_reminders() -> dict:
     reminders = {"morning": [], "afternoon": [], "evening": [], "night": []}
 
     for med in careplan["medications"]:
-        for time in med.get("timing", []):
+        for sched in med.get("schedule", []):  # <-- changed from timing
+            time = sched.get("time")
+            taken = sched.get("taken", False)
             if time in reminders:
                 reminders[time].append({
                     "id": med.get("id", str(uuid.uuid4())),
                     "medication": med.get("name", ""),
-                    "dose": med.get("dose", "")
+                    "dose": med.get("dose", ""),
+                    "taken": taken   # include per-time taken status
                 })
 
     return reminders
