@@ -139,9 +139,9 @@ def parse_pdf(file_path: str, patient_id: str) -> CarePlanCreate:
             if t:
                 pages_text.append(t)
     full_text = "\n".join(pages_text)
-
-    meds_text = _find_section(full_text, "Medications", ["Appointments", "Notes", "Care Plan"])
-    appt_text = _find_section(full_text, "Appointments", ["Medications", "Notes", "Care Plan"])
+    meds_text = _find_section(full_text, "Medications", ["Appointments", "Notes", "Care Plan", "Medical History"])
+    appt_text = _find_section(full_text, "Appointments", ["Medications", "Notes", "Care Plan", "Medical History"])
+    history_text = _find_section(full_text, "Medical History", ["Medications", "Appointments", "Notes", "Care Plan"])
 
     medications = parse_medications_section(meds_text) if meds_text else []
     appointments = parse_appointments_section(appt_text) if appt_text else []
@@ -149,5 +149,7 @@ def parse_pdf(file_path: str, patient_id: str) -> CarePlanCreate:
     return CarePlanCreate(
         patient_id=patient_id,
         medications=medications,
-        appointments=appointments
+        appointments=appointments,
+        medical_history=history_text if history_text else None
     )
+

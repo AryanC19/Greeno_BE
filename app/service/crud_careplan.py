@@ -57,3 +57,23 @@ async def get_medication_by_patient(patient_id: str) -> dict:
     return doc
 
 
+async def get_careplan() -> dict:
+    """
+    Fetch the single careplan document in the DB.
+    Assumes only one careplan exists.
+    """
+    doc = await db[CAREPLANS_COLL].find_one({})
+    if not doc:
+        return None
+
+    # Convert ObjectId to string for clean JSON
+    doc["id"] = str(doc["_id"])
+    doc.pop("_id", None)
+
+    if "created_at" in doc:
+        doc["created_at"] = doc["created_at"].isoformat()
+
+    return doc
+
+
+

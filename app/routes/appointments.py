@@ -5,21 +5,21 @@ from app.utils.ai_agent import assign_slot_to_appointment
 
 router = APIRouter()
 
-@router.post("/appointments/{appointment_id}/confirm")
+@router.post("/{appointment_id}/confirm")
 async def confirm_appointment(appointment_id: str):
     careplan = await update_appointment_status(appointment_id, "confirmed")
     if not careplan:
         raise HTTPException(status_code=404, detail="Appointment not found")
     return {"status": "ok", "careplan": careplan}
 
-@router.post("/appointments/{appointment_id}/decline")
+@router.post("/{appointment_id}/decline")
 async def decline_appointment(appointment_id: str):
     careplan = await update_appointment_status(appointment_id, "declined")
     if not careplan:
         raise HTTPException(status_code=404, detail="Appointment not found")
     return {"status": "ok", "careplan": careplan}
 
-@router.post("/appointments/{appointment_id}/assign-slot")
+@router.post("/{appointment_id}/assign-slot")
 async def assign_slot_auto(appointment_id: str):
     careplan, appointment = await get_careplan_by_appointment_id(appointment_id)
     if not appointment:
