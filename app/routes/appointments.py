@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
-from app.service.crud_appointments import update_appointment_status, get_careplan_by_appointment_id , get_pending_appointments
+from app.service.crud_appointments import update_appointment_status, get_careplan_by_appointment_id , get_pending_appointments ,get_confirmed_appointments
 from app.utils.ai_agent import assign_slot_to_appointment
+
 
 router = APIRouter()
 
@@ -36,3 +37,9 @@ async def assign_slot_auto(appointment_id: str):
 async def pending_appointments():
     pending = await get_pending_appointments()
     return {"pending": pending}
+
+
+@router.get("/confirmed-appointments")
+async def confirmed_appointments():
+    confirmed = await get_confirmed_appointments()
+    return {"confirmed": confirmed}

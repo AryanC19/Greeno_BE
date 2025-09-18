@@ -43,6 +43,16 @@ async def get_pending_appointments():
 
     return [a for a in careplan["appointments"] if a.get("status") == "pending"]
 
+async def get_confirmed_appointments():
+    """
+    Return all confirmed appointments from the single careplan in the DB.
+    """
+    careplan = await db[CAREPLAN_COLL].find_one()
+    if not careplan or "appointments" not in careplan:
+        return []
+
+    return [a for a in careplan["appointments"] if a.get("status") == "confirmed"]
+
 async def get_careplan_by_appointment_id(appointment_id: str):
     careplan = await db[CAREPLAN_COLL].find_one()
     if not careplan:
