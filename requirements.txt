@@ -4,3 +4,5 @@ motor
 pdfplumber
 python-multipart
 pydantic
+pydantic-settings
+openai
