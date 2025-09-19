@@ -1,4 +1,5 @@
 from ..database import db
+from ..utils.ai_agent import get_medicine_reason
 import uuid
 from bson import ObjectId
 
@@ -38,3 +39,26 @@ async def get_medications() -> dict:
                 })
 
     return meds
+
+async def get_medications_with_info() -> dict:
+    """
+    Fetch medications from database and get AI explanations for why each is prescribed.
+    """
+    # Fetch the first (and only) careplan
+    careplan = await db[CAREPLAN_COLL].find_one()
+    if not careplan or "medications" not in careplan:
+        return {"medication_info": {}}
+
+    medication_info = {}
+    
+    # Get unique medication names from the careplan
+    for med in careplan["medications"]:
+        medicine_name = med.get("name", "")
+        if medicine_name and medicine_name not in medication_info:
+            try:
+                reason = get_medicine_reason(medicine_name)
+                medication_info[medicine_name] = reason
+            except Exception as e:
+                medication_info[medicine_name] = f"Error getting information: {str(e)}"
+
+    return {"medication_info": medication_info}
