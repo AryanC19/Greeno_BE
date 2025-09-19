@@ -38,3 +38,6 @@ async def get_medications() -> dict:
                 })
 
     return meds
+
+
+

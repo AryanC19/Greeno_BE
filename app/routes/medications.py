@@ -20,3 +20,6 @@ async def fetch_medications():
     if not meds:
         raise HTTPException(status_code=404, detail="No medications found")
     return {"status": "ok", "medications": meds}
+
+
+
