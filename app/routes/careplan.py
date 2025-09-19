@@ -1,8 +1,8 @@
-# app/routes/careplan.py
+﻿# app/routes/careplan.py
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 import tempfile, os, asyncio
 from ..pdf_parser import parse_pdf
-from ..service.crud_careplan import create_careplan, get_medication_by_patient
+from ..service.crud_careplan import create_careplan, get_medication_by_patient , get_careplan
 from ..models import CarePlanCreate
 
 router = APIRouter()
@@ -29,3 +29,12 @@ async def upload_careplan(file: UploadFile = File(...)):
         except:
             pass
 
+
+
+# 🔹 New endpoint to view entire careplan
+@router.get("/careplan")
+async def view_careplan():
+    doc = await get_careplan()
+    if not doc:
+        raise HTTPException(status_code=404, detail="No careplan found")
+    return {"status": "ok", "careplan": doc}
