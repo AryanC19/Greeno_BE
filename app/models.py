@@ -1,5 +1,5 @@
 # app/models.py
-from typing import List, Optional
+from typing import List, Optional , Dict
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -29,11 +29,22 @@ class Appointment(BaseModel):
     type: str
     status: str = "pending"      # pending / confirmed / declined
 
+class ReminderSlot(BaseModel):
+    time: Optional[str] = None   # HH:mm
+
+
+
 class CarePlanCreate(BaseModel):
     patient_id: str
     medications: List[Medication] = Field(default_factory=list)
     appointments: List[Appointment] = Field(default_factory=list)
-    medical_history: Optional[str] = None
+    reminder_slots: Dict[str, ReminderSlot] = Field(default_factory=lambda: {
+        "morning": ReminderSlot(),
+        "afternoon": ReminderSlot(),
+        "evening": ReminderSlot(),
+        "night": ReminderSlot()
+    })
+    medical_history: Optional[str] = None  # <--- add this
 
 class CarePlanInDB(CarePlanCreate):
     id: Optional[str] = None
