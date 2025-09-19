@@ -25,13 +25,16 @@ async def assign_slot_auto(appointment_id: str):
     if not appointment:
         raise HTTPException(status_code=404, detail="Appointment not found")
 
-    specialty = appointment["type"].split()[0]  # extract specialty
+    specialty = appointment["type"].split()[0]  # first word of appointment type
 
-    slot = await assign_slot_to_appointment("1", appointment_id, specialty)  # hardcoded patient_id
+    # assuming you have a single patient, hardcode patient_id = "1"
+    slot = await assign_slot_to_appointment("1", appointment_id, specialty)
+    
     if not slot:
         raise HTTPException(status_code=404, detail="No available slot")
 
     return {"status": "ok", "proposed_slot": slot}
+
 
 @router.get("/pending-appointments")
 async def pending_appointments():
