@@ -3,6 +3,14 @@ from typing import List, Optional , Dict
 from pydantic import BaseModel, Field
 from datetime import datetime
 
+
+class ChatRequest(BaseModel):
+    question: str
+
+class ChatResponse(BaseModel):
+    answer: str
+
+
 class User(BaseModel):
     id: Optional[str] = None
     email: str
