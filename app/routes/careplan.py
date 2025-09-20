@@ -6,6 +6,8 @@ from ..service.crud_careplan import create_careplan, get_medication_by_patient ,
 from ..models import CarePlanCreate
 
 router = APIRouter()
+
+
 @router.post("/upload-careplan")
 async def upload_careplan(file: UploadFile = File(...)):
     # save uploaded file to a temp file
@@ -20,6 +22,7 @@ async def upload_careplan(file: UploadFile = File(...)):
         loop = asyncio.get_event_loop()
         parsed_careplan: CarePlanCreate = await loop.run_in_executor(None, parse_pdf, tmp.name, "1")  # hardcoded patient_id="1"
         inserted = await create_careplan(parsed_careplan.dict())  # convert to dict for Mongo insertion
+        # notify subscribers
 
         return {"status": "ok", "careplan": inserted}
 
@@ -38,3 +41,5 @@ async def view_careplan():
     if not doc:
         raise HTTPException(status_code=404, detail="No careplan found")
     return {"status": "ok", "careplan": doc}
+
+
