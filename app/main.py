@@ -8,6 +8,7 @@ from .routes import (
     reminders,
     medications,
     exercise,
+    chat
 )
 
 app = FastAPI(title="GPP CarePlan Parser")
@@ -20,3 +21,4 @@ app.include_router(doctors.router, prefix="/api/doctors", tags=["Doctors"])
 app.include_router(medications.router, prefix="/api/medications", tags=["Medications"])
 app.include_router(exercise.router, prefix="/api/exercise", tags=["Exercise & Diet"])
 app.include_router(reminders.router, prefix="/api/reminders", tags=["Reminders"])  # applies globally
+app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])  
