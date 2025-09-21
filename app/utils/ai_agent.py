@@ -73,91 +73,44 @@ def fetch_food_image(food_name: str) -> str:
     if not food_name:
         return "https://images.pexels.com/photos/1/pexels-photo-1.jpeg"
     
-    # Handle food name variations for edible, prominent dishes
-    food_dish_variations = {
-        'kiwifruit': ['kiwi salad', 'kiwi smoothie', 'kiwi tart'],
-        'greek yogurt': ['yogurt parfait', 'greek yogurt bowl', 'yogurt smoothie'],
-        'chia seeds': ['chia seed pudding', 'chia smoothie', 'chia bowl'],
-        'quinoa': ['quinoa salad', 'quinoa bowl', 'quinoa stir-fry'],
-        'salmon': ['grilled salmon', 'salmon fillet', 'salmon salad'],
-        'lentils': ['lentil soup', 'lentil curry', 'lentil salad'],
-        'spinach': ['spinach salad', 'sautéed spinach', 'spinach curry'],
-        'almonds': ['almond butter toast', 'almond salad', 'roasted almonds'],
-        'avocado': ['avocado toast', 'avocado salad', 'guacamole'],
-        'broccoli': ['broccoli stir-fry', 'sautéed broccoli', 'broccoli salad'],
-        'oatmeal': ['oatmeal bowl', 'oat porridge', 'oat pancakes'],
-        'banana': ['banana smoothie', 'banana bread', 'banana pancakes'],
-        'white rice': ['white rice bowl', 'white rice stir-fry'],
-        'chicken curry': ['chicken curry', 'chicken tikka masala'],
-        'mashed potatoes': ['mashed potatoes', 'potato casserole'],
-        'roti': ['roti with curry', 'roti wrap', 'indian flatbread'],
-        'paneer butter masala': ['paneer butter masala', 'paneer curry'],
-        'gulab jamun': ['gulab jamun', 'indian dessert'],
-        'samosa': ['samosa', 'fried samosa'],
-        'tea': ['herbal tea', 'chai tea'],
-        'chips': ['potato chips', 'baked chips'],
-        'soft drinks': ['soda drink', 'carbonated beverage'],
-        'chicken': ['grilled chicken', 'chicken salad', 'chicken curry'],
-        'tofu': ['tofu stir-fry', 'tofu scramble', 'tofu curry'],
-        'brown rice': ['brown rice bowl', 'brown rice stir-fry'],
-        'kale': ['kale salad', 'sautéed kale', 'kale smoothie'],
-    }
-    
-    # Prioritize dish-specific queries, limit to 3 queries for efficiency
-    queries = []
-    if food_name.lower() in food_dish_variations:
-        queries.extend(food_dish_variations[food_name.lower()][:2])  # Top 2 dish variations
-    queries.append(f"{food_name} dish")  # Generic dish query
-    if len(queries) < 3:
-        queries.append(f"{food_name} food")  # Fallback to food query
-    
-    best_image = None
-    best_score = -1
-    for query in queries[:3]:  # Limit to 3 queries to optimize Pexels API usage
-        url = f"https://api.pexels.com/v1/search?query={requests.utils.quote(query)}&per_page=5"
-        headers = {"Authorization": f"{PEXELS_API_KEY}"}
-        try:
-            response = requests.get(url, headers=headers)
-            if response.status_code == 200:
-                data = response.json()
-                if data.get('photos'):
-                    for photo in data['photos']:
-                        alt = photo.get('alt', '').lower()
-                        src = photo.get('src', {}).get('original', '').lower()
-                        # Exclude non-food or non-edible images
-                        if any(term in alt + src for term in ['cartoon', 'drawing', 'art', 'decoration', 'raw', 'garnish', 'unprepared']):
-                            continue
-                        # Score image relevance, prioritizing edible dishes where food is prominent
-                        score = 0
-                        if any(term in alt + src for term in ['cooked', 'sauté', 'stir-fry', 'roasted', 'grilled', 'curry', 'salad', 'dish', 'soup', 'pudding', 'toast', 'smoothie', 'bowl', 'dessert', 'flatbread']):
-                            score += 4  # Higher weight for prepared dishes
-                        if food_name.lower() in alt + src:
-                            score += 3  # Ensure food is mentioned
-                        if any(var in alt + src for var in food_dish_variations.get(food_name.lower(), [])):
-                            score += 2  # Prefer specific dish variations
-                        if any(term in alt + src for term in ['food', 'edible', 'meal']):
-                            score += 1  # General food relevance
-                        if any(term in alt + src for term in ['raw', 'ingredient', 'garnish']):
-                            score -= 2  # Penalize non-edible or non-prominent images
-                        if score > best_score:
-                            best_score = score
-                            best_image = photo['src']['medium']
-                    if best_image:
-                        return best_image
-        except Exception as e:
-            print(f"Pexels API error for query '{query}' (food: {food_name}): {e}")
-    
-    # Fallback to single generic query
-    url = f"https://api.pexels.com/v1/search?query={requests.utils.quote(food_name + ' dish')}&per_page=1"
+    # Search for the exact food name first
+    url = f"https://api.pexels.com/v1/search?query={requests.utils.quote(food_name)}&per_page=10"
     headers = {"Authorization": f"{PEXELS_API_KEY}"}
+    
+    # Terms to exclude (people, non-food items)
+    exclude_terms = [
+        'person', 'people', 'man', 'woman', 'boy', 'girl', 'hand', 'hands', 'face', 'portrait', 
+        'chef', 'waiter', 'child', 'kid', 'human', 'cooking', 'preparation', 'kitchen', 
+        'cartoon', 'drawing', 'art', 'decoration', 'raw', 'garnish', 'unprepared'
+    ]
+    
     try:
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             data = response.json()
             if data.get('photos'):
-                return data['photos'][0]['src']['medium']
+                for photo in data['photos']:
+                    alt = photo.get('alt', '').lower()
+                    # Only accept if food name is in alt text and no excluded terms
+                    if (food_name.lower() in alt and 
+                        not any(term in alt for term in exclude_terms) and
+                        any(food_term in alt for food_term in ['food', 'dish', 'meal', 'fresh', 'healthy', 'eat', 'fruit', 'vegetable', 'grain', 'protein'])):
+                        return photo['src']['medium']
+                        
+        # If no exact match, try with "food" added
+        url = f"https://api.pexels.com/v1/search?query={requests.utils.quote(food_name + ' food')}&per_page=5"
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get('photos'):
+                for photo in data['photos']:
+                    alt = photo.get('alt', '').lower()
+                    if (food_name.lower() in alt and 
+                        not any(term in alt for term in exclude_terms)):
+                        return photo['src']['medium']
+                        
     except Exception as e:
-        print(f"Pexels API fallback error for food: {food_name}: {e}")
+        print(f"Pexels API error for food: {food_name}: {e}")
     
     print(f"No suitable image found for food: {food_name}")
     return "https://images.pexels.com/photos/1/pexels-photo-1.jpeg"
@@ -178,34 +131,59 @@ def extract_descriptive_terms(description: str) -> str:
     
 def fetch_exercise_video(exercise_name: str, description: str) -> str:
     descriptive_terms = extract_descriptive_terms(description)
-    query = f"{exercise_name} {descriptive_terms} exercise human demonstration"
-    url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={requests.utils.quote(query)}&key={YOUTUBE_API_KEY}&type=video&videoCategoryId=17&maxResults=5"
+    
+    # Extract key terms from description for better matching
+    description_words = description.lower().split()
+    key_description_terms = [word for word in description_words if word in ['gentle', 'stretching', 'cardio', 'strength', 'flexibility', 'balance', 'low', 'high', 'intensity', 'beginner', 'advanced', 'rehabilitation', 'recovery', 'knee', 'back', 'shoulder', 'leg', 'arm', 'core', 'breathing']]
+    
+    # Try multiple search strategies, prioritizing exact matches with description context
+    search_queries = [
+        f"{exercise_name} {' '.join(key_description_terms)} exercise tutorial",
+        f"{exercise_name} exercise tutorial how to",
+        f"{exercise_name} {descriptive_terms} demonstration",
+        f"how to do {exercise_name} {' '.join(key_description_terms)}",
+        f"{exercise_name} exercise proper form",
+        f"{exercise_name} {descriptive_terms} tutorial",
+        f"{exercise_name} exercise video"
+    ]
+    
     try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            if data.get('items'):
-                for item in data['items']:
-                    title = item['snippet']['title'].lower()
-                    description = item['snippet']['description'].lower()
-                    # Discard if cartoon, anime, or meme
-                    if any(term in title + description for term in ['cartoon', 'anime', 'meme']):
-                        continue
-                    # Prioritize if matches exercise name and descriptive terms
-                    if exercise_name.lower() in title + description and \
-                       any(term in title + description for term in descriptive_terms.split()):
-                        video_id = item['id']['videoId']
-                        # Prefer Shorts if available
-                        if 'shorts' in item['snippet']['thumbnails']['default']['url']:
-                            return f"https://www.youtube.com/shorts/{video_id}"
-                        return f"https://www.youtube.com/watch?v={video_id}"
-                # Fallback to first video
-                video_id = data['items'][0]['id']['videoId']
-                return f"https://www.youtube.com/watch?v={video_id}"
-        return "https://www.youtube.com/watch?v=placeholder"  # Placeholder if no video found
+        for query in search_queries:
+            url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={requests.utils.quote(query)}&key={YOUTUBE_API_KEY}&type=video&videoCategoryId=17&maxResults=15"
+            response = requests.get(url)
+            if response.status_code == 200:
+                data = response.json()
+                if data.get('items'):
+                    for item in data['items']:
+                        title = item['snippet']['title'].lower()
+                        desc = item['snippet']['description'].lower()
+                        
+                        # Skip irrelevant content
+                        if any(term in title + desc for term in ['cartoon', 'anime', 'meme', 'game', 'animation', 'music', 'song', 'comedy', 'funny']):
+                            continue
+                        
+                        # Prioritize videos that mention the specific exercise name AND description context
+                        if exercise_name.lower() in title:
+                            # Check if description context matches (gentle, stretching, etc.)
+                            context_match = any(term in title + desc for term in key_description_terms)
+                            exercise_related = any(term in title + desc for term in ['exercise', 'workout', 'fitness', 'training', 'tutorial', 'how to', 'demonstration', 'form'])
+                            
+                            if exercise_related and (context_match or not key_description_terms):
+                                video_id = item['id']['videoId']
+                                return f"https://www.youtube.com/watch?v={video_id}"
+                        
+                        # Secondary option: exercise-related with descriptive terms from description
+                        elif (any(term in title for term in descriptive_terms.split() if term) and 
+                              any(term in title + desc for term in ['exercise', 'workout', 'fitness', 'training', 'tutorial']) and
+                              any(term in title + desc for term in key_description_terms if key_description_terms)):
+                            video_id = item['id']['videoId']
+                            return f"https://www.youtube.com/watch?v={video_id}"
+        
+        # If no good match found, return None
+        return None
     except Exception as e:
         print(f"YouTube API error: {e}")
-        return "https://www.youtube.com/watch?v=placeholder"
+        return None
 
 def parse_sections(text: str) -> Dict[str, str]:
     sections = {'history': '', 'concern': '', 'current_diet': '', 'lab_reports': '', 'allergies': ''}
@@ -294,42 +272,77 @@ def generate_suggestions(conditions: List[str], concern: str, current_diet: str,
     allergies_str = ', '.join(allergies) or 'None'
     prompt = f"""Patient conditions: {conditions_str}. Concern: {concern_str}. Lab metrics: {lab_metrics_str}. Allergies: {allergies_str}.
 Provide valid JSON object only, no extra text or code blocks, that can be parsed by json.loads, with:
-- 'nutrition_plan': List of 5-10 objects, each with:
-  - 'nutrient': A specific nutrient needed based on the patient's conditions, concern, and lab metrics (e.g., 'Fiber', 'Iron').
-  - 'food': A food rich in that nutrient, tailored to aid recovery (e.g., 'Lentils', 'Spinach'). Do NOT include any foods listed in allergies.
-  - 'reason': A brief explanation of why the nutrient/food helps the patient's condition, concern, or lab metrics (e.g., 'Helps regulate blood sugar').
-  Suggestions must be personalized, focusing on nutrients that support health improvement and avoiding allergens.
-- 'exercise_plan': List of 3-5 objects, each with:
-  - 'name': A concise exercise name (e.g., 'Stretching', 'Swimming') suitable for searching videos.
-  - 'description': A short description of the exercise tailored to the patient's conditions, concern, and lab metrics (e.g., 'Gentle stretching exercises focusing on the legs and knees').
-  Exercises must be personalized to help the patient recover and improve health (e.g., gentle exercises for low hemoglobin, cardio for high cholesterol).
-All suggestions must be personalized, not generic, and nutrition suggestions must exclude allergens. Return valid JSON only."""
+    - 'diet_plan': List of exactly 5-7 objects, each with:
+        - 'nutrient': A specific nutrient needed based on the patient's conditions, concern, and lab metrics (e.g., 'Fiber', 'Iron').
+        - 'food': A SIMPLE, COMMON, cooked or ready-to-eat dish (not just a raw ingredient) that is rich in that nutrient (e.g., 'Vegetable Soup', 'Egg Curry', 'Rice Porridge', 'Carrot Halwa'). DO NOT use complicated, fortified, or branded foods. The food name must be a general, recognizable dish that is easy to find and suitable for a clear image (no people, no packaging, just the dish itself).
+        - 'reason': A brief explanation of why the dish helps the patient's condition, concern, or lab metrics (e.g., 'Helps regulate blood sugar').
+        Suggestions must be personalized, focusing on nutrients that support health improvement and avoiding allergens. The dish must be suitable for finding a clear image of the food only (no people, no packaging, just the dish itself).
+    - 'exercise_plan': List of exactly 5-7 objects, each with:
+        - 'name': A concise exercise name (e.g., 'Walking', 'Stretching', 'Swimming') suitable for searching videos.
+        - 'description': A short description of the exercise tailored to the patient's conditions, concern, and lab metrics (e.g., 'Gentle stretching exercises focusing on the legs and knees').
+        Exercises must be personalized to help the patient recover and improve health (e.g., gentle exercises for low hemoglobin, cardio for high cholesterol).
+    All suggestions must be personalized, not generic, and diet suggestions must exclude allergens. Return valid JSON only."""
     try:
         response = call_openrouter_api(prompt)
         suggestions = json.loads(response)
-        # Add diet analysis and image URLs to nutrition_plan
-        nutrition_with_images = []
+        # Add diet analysis and image URLs to diet_plan
+        diet_with_images = []
         if current_diet:
             diet_analysis = analyze_current_diet(current_diet, conditions, concern, lab_metrics, allergies)
             if diet_analysis:
-                nutrition_with_images.append(diet_analysis)
+                diet_with_images.append({"analysis": diet_analysis})
         else:
-            nutrition_with_images.append("To support your recovery and improve your health, include these nutrient-rich foods tailored to your needs.")
-        nutrition_with_images.append("Try to include the following foods to improve your nutrition")
-        for sugg in suggestions.get('nutrition_plan', []):
+            diet_with_images.append({"analysis": "To support your recovery and improve your health, include these nutrient-rich foods tailored to your needs."})
+        # For each suggested food, pair with its image and nutrition
+        for sugg in suggestions.get('diet_plan', []):
             nutrient = sugg.get('nutrient', '')
             food = sugg.get('food', '')
+            dish = sugg.get('dish', '')
             reason = sugg.get('reason', '')
             if not nutrient or not food or not reason:
                 continue
-            # Double-check that suggested food is not an allergen
             if any(allergen.lower() in food.lower() for allergen in allergies):
                 continue
             image_url = fetch_food_image(food)
-            nutrition_with_images.append(f"{nutrient}: {food} ({reason})\n{image_url}")
-        suggestions['nutrition_plan'] = nutrition_with_images
+            # If no image found (default placeholder), try alternative foods for the same nutrient
+            if image_url.endswith('/1/pexels-photo-1.jpeg'):
+                # Try up to 3 alternative foods for the same nutrient using the AI
+                alt_prompt = f"List 3 simple, common, cooked or ready-to-eat foods (not raw ingredients) rich in {nutrient}, excluding {food}. Only list the food names, comma separated."
+                try:
+                    alt_foods_str = call_openrouter_api(alt_prompt)
+                    alt_foods = [f.strip() for f in alt_foods_str.split(',') if f.strip()]
+                    found = False
+                    for alt_food in alt_foods:
+                        if any(allergen.lower() in alt_food.lower() for allergen in allergies):
+                            continue
+                        alt_image_url = fetch_food_image(alt_food)
+                        if not alt_image_url.endswith('/1/pexels-photo-1.jpeg'):
+                            # Found a real image
+                            diet_with_images.append({
+                                "nutrient": nutrient,
+                                "food": alt_food,
+                                "dish": dish,
+                                "reason": reason,
+                                "image_url": alt_image_url
+                            })
+                            found = True
+                            break
+                    if not found:
+                        continue  # Skip if no image found for any food
+                except Exception as e:
+                    print(f"Error finding alternative food for {nutrient}: {e}")
+                    continue
+            else:
+                diet_with_images.append({
+                    "nutrient": nutrient,
+                    "food": food,
+                    "dish": dish,
+                    "reason": reason,
+                    "image_url": image_url
+                })
+        suggestions['diet_plan'] = diet_with_images
         
-        # Add video URLs to exercise_plan
+        # Add video URLs to exercise_plan in structured format
         exercise_with_videos = []
         for ex in suggestions.get('exercise_plan', []):
             name = ex.get('name', '')
@@ -337,14 +350,26 @@ All suggestions must be personalized, not generic, and nutrition suggestions mus
             if not name or not description:
                 continue
             video_url = fetch_exercise_video(name, description)
-            exercise_with_videos.append(f"{name}: {description}\n{video_url}")
+            if video_url:
+                exercise_with_videos.append({
+                    "name": name,
+                    "reason": description,
+                    "video_url": video_url
+                })
+            else:
+                # Include exercise without video if no video found
+                exercise_with_videos.append({
+                    "name": name,
+                    "reason": description,
+                    "video_url": "No video available"
+                })
         suggestions['exercise_plan'] = exercise_with_videos
         
         return suggestions
     except (json.JSONDecodeError, Exception) as e:
         print(f"Suggestions error: {e} - Response: {response if 'response' in locals() else 'No response'}")
         return {
-            'nutrition_plan': ["To support your recovery and improve your health, include these nutrient-rich foods tailored to your needs.", "Try to include the following foods to improve your nutrition"],
+            'diet_plan': ["To support your recovery and improve your health, include these nutrient-rich foods tailored to your needs.", "Try to include the following foods to improve your diet"],
             'exercise_plan': []
         }
 

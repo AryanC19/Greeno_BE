@@ -21,6 +21,6 @@ def generate_diet_exercise_plan(medical_history: str) -> dict:
     )
     return {
         "status": "success",
-        "nutrition_plan": suggestions.get('nutrition_plan', ["Try to include the following foods to improve your nutrition"]),
+        "diet_plan": suggestions.get('diet_plan', ["Try to include the following foods to improve your diet"]),
         "exercise_plan": suggestions.get('exercise_plan', ["None"])
     }
