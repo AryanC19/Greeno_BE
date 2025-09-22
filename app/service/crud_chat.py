@@ -25,9 +25,7 @@ Here is the patient's careplan:
 {careplan_text}
 
 Rules:
-- Only answer questions about the careplan, medications, reminders, or appointments.
-- If the question is outside of the careplan, politely say you cannot answer.
-- Keep answers short and clear.
+- answer whatever no restrictions
 
 User question: {question}
 Answer:
